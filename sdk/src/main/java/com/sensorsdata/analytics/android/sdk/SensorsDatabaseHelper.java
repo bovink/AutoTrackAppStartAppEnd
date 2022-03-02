@@ -102,4 +102,8 @@ import android.net.Uri;
     public Uri getAppStartUri() {
         return mAppStart;
     }
+
+    public Uri getAppEndUri() {
+        return mAppEndState;
+    }
 }

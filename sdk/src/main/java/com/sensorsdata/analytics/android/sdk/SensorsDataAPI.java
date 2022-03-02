@@ -19,9 +19,14 @@ public class SensorsDataAPI {
     public static final String SDK_VERSION = "1.0.0";
     private static SensorsDataAPI INSTANCE;
     private static final Object mLock = new Object();
-    private static Map<String, Object> mDeviceInfo;
-    private String mDeviceId;
+    private static Map<String, Object> mDeviceInfo;//公共维度参数
+    private String mDeviceId;//设备ID
 
+    /**
+     * 初始化，创建单例
+     * @param application
+     * @return
+     */
     @Keep
     @SuppressWarnings("UnusedReturnValue")
     public static SensorsDataAPI init(Application application) {
@@ -33,6 +38,10 @@ public class SensorsDataAPI {
         }
     }
 
+    /**
+     * 获取单例
+     * @return
+     */
     @Keep
     public static SensorsDataAPI getInstance() {
         return INSTANCE;
@@ -41,8 +50,10 @@ public class SensorsDataAPI {
     private SensorsDataAPI(Application application) {
         mDeviceId = SensorsDataPrivate.getAndroidID(application.getApplicationContext());
         mDeviceInfo = SensorsDataPrivate.getDeviceInfo(application.getApplicationContext());
+        //注册Activity生命周期回调处理
         SensorsDataPrivate.registerActivityLifecycleCallbacks(application);
-        SensorsDataPrivate.registerActivityStateObserver(application);
+
+        SensorsDataPrivate.registerActivityStateObserver(application);//注册AppStart事件监听
     }
 
     /**

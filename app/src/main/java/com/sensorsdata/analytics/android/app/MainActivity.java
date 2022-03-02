@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        //申请权限时忽略追踪AppViewScreen事件
         SensorsDataAPI.getInstance().ignoreAutoTrackActivity(MainActivity.class);
         switch (requestCode) {
             case PERMISSIONS_REQUEST_READ_CONTACTS:
@@ -63,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        //移除忽略追踪
         SensorsDataAPI.getInstance().removeIgnoredActivity(MainActivity.class);
     }
 }

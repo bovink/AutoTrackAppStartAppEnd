@@ -36,13 +36,13 @@ import java.util.Locale;
 import java.util.Map;
 
 /*public*/ class SensorsDataPrivate {
-    private static List<String> mIgnoredActivities;
+    private static List<String> mIgnoredActivities;//需要在申请权限时忽视的Activity
     private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
             + ".SSS", Locale.CHINA);
     private static SensorsDatabaseHelper mDatabaseHelper;
-    private static CountDownTimer countDownTimer;
+    private static CountDownTimer countDownTimer;//倒计时器
     private static WeakReference<Activity> mCurrentActivity;
-    private final static int SESSION_INTERVAL_TIME = 30 * 1000;
+    private final static int SESSION_INTERVAL_TIME = 30 * 1000;//Session间隔时间
 
     static {
         mIgnoredActivities = new ArrayList<>();
@@ -147,7 +147,7 @@ import java.util.Map;
     }
 
     /**
-     * Track 页面浏览事件
+     * Track $AppViewScreen 页面浏览事件
      *
      * @param activity Activity
      */
@@ -157,12 +157,14 @@ import java.util.Map;
             if (activity == null) {
                 return;
             }
+            //如果需要被忽视则不处理
             if (mIgnoredActivities.contains(activity.getClass().getCanonicalName())) {
                 return;
             }
             JSONObject properties = new JSONObject();
             properties.put("$activity", activity.getClass().getCanonicalName());
             properties.put("title", getActivityTitle(activity));
+
             SensorsDataAPI.getInstance().track("$AppViewScreen", properties);
         } catch (Exception e) {
             e.printStackTrace();
@@ -180,6 +182,7 @@ import java.util.Map;
             JSONObject properties = new JSONObject();
             properties.put("$activity", activity.getClass().getCanonicalName());
             properties.put("$title", getActivityTitle(activity));
+
             SensorsDataAPI.getInstance().track("$AppStart", properties);
         } catch (Exception e) {
             e.printStackTrace();
@@ -197,8 +200,10 @@ import java.util.Map;
             JSONObject properties = new JSONObject();
             properties.put("$activity", activity.getClass().getCanonicalName());
             properties.put("$title", getActivityTitle(activity));
+
             SensorsDataAPI.getInstance().track("$AppEnd", properties);
-            mDatabaseHelper.commitAppEndEventState(true);
+
+            mDatabaseHelper.commitAppEndEventState(true);//发送了AppEnd事件
             mCurrentActivity = null;
         } catch (Exception e) {
             e.printStackTrace();
@@ -235,30 +240,33 @@ import java.util.Map;
 
             @Override
             public void onActivityStarted(Activity activity) {
-                mDatabaseHelper.commitAppStart(true);
-                double timeDiff = System.currentTimeMillis() - mDatabaseHelper.getAppPausedTime();
-                if (timeDiff > SESSION_INTERVAL_TIME) {
-                    if (!mDatabaseHelper.getAppEndEventState()) {
-                        trackAppEnd(activity);
+                //页面启动
+                mDatabaseHelper.commitAppStart(true);//记录页面启动,触发监听事件
+                double timeDiff = System.currentTimeMillis() - mDatabaseHelper.getAppPausedTime();//计算启动与上次退出时间差
+                if (timeDiff > SESSION_INTERVAL_TIME) {//判断时间差是否大于会话时间
+                    if (!mDatabaseHelper.getAppEndEventState()) {//没有发送AppEnd事件
+                        trackAppEnd(activity);//触发$AppEnd事件
                     }
                 }
 
-                if (mDatabaseHelper.getAppEndEventState()) {
-                    mDatabaseHelper.commitAppEndEventState(false);
-                    trackAppStart(activity);
+                if (mDatabaseHelper.getAppEndEventState()) {//已经发送了AppEnd事件
+                    mDatabaseHelper.commitAppEndEventState(false);//重置
+                    trackAppStart(activity);//触发$AppStart事件
                 }
             }
 
             @Override
             public void onActivityResumed(Activity activity) {
+                //页面浏览
                 trackAppViewScreen(activity);
             }
 
             @Override
             public void onActivityPaused(Activity activity) {
+                //页面退出
                 mCurrentActivity = new WeakReference<>(activity);
-                countDownTimer.start();
-                mDatabaseHelper.commitAppPausedTime(System.currentTimeMillis());
+                countDownTimer.start();//开始倒计时
+                mDatabaseHelper.commitAppPausedTime(System.currentTimeMillis());//记录页面退出时间
             }
 
             @Override
@@ -284,6 +292,7 @@ import java.util.Map;
                 false, new ContentObserver(new Handler()) {
                     @Override
                     public void onChange(boolean selfChange, Uri uri) {
+                        System.out.println("uri.toString() = " + uri.toString());
                         if (mDatabaseHelper.getAppStartUri().equals(uri)) {
                             countDownTimer.cancel();
                         }
@@ -291,6 +300,11 @@ import java.util.Map;
                 });
     }
 
+    /**
+     * 获取公共维度参数
+     * @param context
+     * @return
+     */
     public static Map<String, Object> getDeviceInfo(Context context) {
         final Map<String, Object> deviceInfo = new HashMap<>();
         {
